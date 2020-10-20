@@ -21,11 +21,11 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 
 	"k8s.io/klog"
 
 	"github.com/emicklei/go-restful"
-	"github.com/kubeedge/kubeedge/common/constants"
 	"github.com/kubeedge/kubeedge/pkg/stream"
 )
 
@@ -35,7 +35,7 @@ type ContainerMetricsConnection struct {
 	MessageID    uint64
 	ctx          context.Context
 	r            *restful.Request
-	flush        io.Writer
+	writer       io.Writer
 	session      *Session
 	edgePeerStop chan struct{}
 }
@@ -53,7 +53,7 @@ func (ms *ContainerMetricsConnection) EdgePeerDone() <-chan struct{} {
 }
 
 func (ms *ContainerMetricsConnection) WriteToAPIServer(p []byte) (n int, err error) {
-	return ms.flush.Write(p)
+	return ms.writer.Write(p)
 }
 
 func (ms *ContainerMetricsConnection) WriteToTunnel(m *stream.Message) error {
@@ -74,8 +74,9 @@ func (ms *ContainerMetricsConnection) SendConnection() (stream.EdgedConnection, 
 		URL:    *ms.r.Request.URL,
 		Header: ms.r.Request.Header,
 	}
-	connector.URL.Scheme = "http"
-	connector.URL.Host = net.JoinHostPort("127.0.0.1", fmt.Sprintf("%v", constants.ServerPort))
+	targetPort := strings.Split(ms.r.Request.Host, ":")[1]
+	connector.URL.Scheme = httpScheme
+	connector.URL.Host = net.JoinHostPort(defaultServerHost, targetPort)
 	m, err := connector.CreateConnectMessage()
 	if err != nil {
 		return nil, err

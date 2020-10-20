@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/google/uuid"
 
 	types "github.com/kubeedge/kubeedge/keadm/cmd/keadm/app/cmd/common"
@@ -39,6 +40,7 @@ type KubeEdgeInstTool struct {
 	RemoteRuntimeEndpoint string
 	Token                 string
 	CertPort              string
+	CGroupDriver          string
 }
 
 // InstallTools downloads KubeEdge for the specified verssion
@@ -74,7 +76,7 @@ func (ku *KubeEdgeInstTool) InstallTools() error {
 }
 
 func (ku *KubeEdgeInstTool) createEdgeConfigFiles() error {
-	if ku.ToolVersion >= "1.2.0" {
+	if ku.ToolVersion.GE(semver.MustParse("1.2.0")) {
 		//This makes sure the path is created, if it already exists also it is fine
 		err := os.MkdirAll(KubeEdgeNewConfigDir, os.ModePerm)
 		if err != nil {
@@ -89,6 +91,16 @@ func (ku *KubeEdgeInstTool) createEdgeConfigFiles() error {
 		}
 		if ku.RuntimeType != "" {
 			edgeCoreConfig.Modules.Edged.RuntimeType = ku.RuntimeType
+		}
+		if ku.CGroupDriver != "" {
+			switch ku.CGroupDriver {
+			case v1alpha1.CGroupDriverSystemd:
+				edgeCoreConfig.Modules.Edged.CGroupDriver = v1alpha1.CGroupDriverSystemd
+			case v1alpha1.CGroupDriverCGroupFS:
+				edgeCoreConfig.Modules.Edged.CGroupDriver = v1alpha1.CGroupDriverCGroupFS
+			default:
+				return fmt.Errorf("unsupported CGroupDriver: %s", ku.CGroupDriver)
+			}
 		}
 		if ku.InterfaceName != "" {
 			edgeCoreConfig.Modules.Edged.InterfaceName = ku.InterfaceName
@@ -106,7 +118,7 @@ func (ku *KubeEdgeInstTool) createEdgeConfigFiles() error {
 			edgeCoreConfig.Modules.EdgeHub.HTTPServer = "https://" + strings.Split(ku.CloudCoreIP, ":")[0] + ":10002"
 		}
 
-		if strings.HasPrefix(ku.ToolVersion, "1.2") {
+		if ku.ToolVersion.Major == 1 && ku.ToolVersion.Minor == 2 {
 			edgeCoreConfig.Modules.EdgeHub.TLSPrivateKeyFile = strings.Join([]string{KubeEdgeCloudDefaultCertPath, "server.key"}, "")
 			edgeCoreConfig.Modules.EdgeHub.TLSCertFile = strings.Join([]string{KubeEdgeCloudDefaultCertPath, "server.crt"}, "")
 		}
@@ -155,7 +167,9 @@ func (ku *KubeEdgeInstTool) TearDown() error {
 	ku.SetKubeEdgeVersion(ku.ToolVersion)
 
 	//Kill edge core process
-	ku.KillKubeEdgeBinary(KubeEdgeBinaryName)
+	if err := ku.KillKubeEdgeBinary(KubeEdgeBinaryName); err != nil {
+		return err
+	}
 
 	return nil
 }

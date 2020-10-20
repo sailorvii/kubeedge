@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/blang/semver"
+
 	types "github.com/kubeedge/kubeedge/keadm/cmd/keadm/app/cmd/common"
 )
 
@@ -28,18 +30,18 @@ const downloadRetryTimes int = 3
 //on Hosts having Ubuntu OS.
 //It implements OSTypeInstaller interface
 type UbuntuOS struct {
-	KubeEdgeVersion string
+	KubeEdgeVersion semver.Version
 	IsEdgeNode      bool //True - Edgenode False - Cloudnode
 }
 
 //SetKubeEdgeVersion sets the KubeEdge version for the objects instance
-func (u *UbuntuOS) SetKubeEdgeVersion(version string) {
+func (u *UbuntuOS) SetKubeEdgeVersion(version semver.Version) {
 	u.KubeEdgeVersion = version
 }
 
 //InstallMQTT checks if MQTT is already installed and running, if not then install it from OS repo
 func (u *UbuntuOS) InstallMQTT() error {
-	mqttRunning := fmt.Sprintf("ps aux |awk '/mosquitto/ {print $1}' | awk '/mosquit/ {print}'")
+	mqttRunning := "ps aux |awk '/mosquitto/ {print $1}' | awk '/mosquit/ {print}'"
 	cmd := &Command{Cmd: exec.Command("sh", "-c", mqttRunning)}
 	cmd.ExecuteCommand()
 	stdout := cmd.GetStdOutput()
@@ -53,7 +55,7 @@ func (u *UbuntuOS) InstallMQTT() error {
 	}
 
 	//Install mqttInst
-	mqttInst := fmt.Sprintf("apt-get install -y --allow-change-held-packages --allow-downgrades mosquitto")
+	mqttInst := "apt-get install -y --allow-change-held-packages --allow-downgrades mosquitto"
 	stdout, err := runCommandWithShell(mqttInst)
 	if err != nil {
 		return err

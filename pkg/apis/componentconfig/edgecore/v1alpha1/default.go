@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strconv"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -108,7 +109,8 @@ func NewDefaultEdgeCoreConfig() *EdgeCoreConfig {
 					Scheme: "https",
 					Host:   net.JoinHostPort(localIP, "10002"),
 				}).String(),
-				Token: "",
+				Token:              "",
+				RotateCertificates: true,
 			},
 			EventBus: &EventBus{
 				Enable:               true,
@@ -118,6 +120,12 @@ func NewDefaultEdgeCoreConfig() *EdgeCoreConfig {
 				MqttServerExternal:   "tcp://127.0.0.1:1883",
 				MqttServerInternal:   "tcp://127.0.0.1:1884",
 				MqttMode:             MqttModeExternal,
+				TLS: &EventBusTLS{
+					Enable:                false,
+					TLSMqttCAFile:         constants.DefaultMqttCAFile,
+					TLSMqttCertFile:       constants.DefaultMqttCertFile,
+					TLSMqttPrivateKeyFile: constants.DefaultMqttKeyFile,
+				},
 			},
 			MetaManager: &MetaManager{
 				Enable:                true,
@@ -148,7 +156,7 @@ func NewDefaultEdgeCoreConfig() *EdgeCoreConfig {
 				TLSTunnelPrivateKeyFile: constants.DefaultKeyFile,
 				HandshakeTimeout:        30,
 				ReadDeadline:            15,
-				TunnelServer:            net.JoinHostPort("127.0.0.1", string(constants.DefaultTunnelPort)),
+				TunnelServer:            net.JoinHostPort("127.0.0.1", strconv.Itoa(constants.DefaultTunnelPort)),
 				WriteDeadline:           15,
 			},
 		},

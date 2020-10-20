@@ -25,6 +25,12 @@ define ALL_HELP_INFO
 #   make all
 #   make all HELP=y
 #   make all WHAT=cloudcore
+#   make all WHAT=cloudcore GOLDFLAGS="" GOGCFLAGS="-N -l"
+#     Note: Specify GOLDFLAGS as an empty string for building unstripped binaries, specify GOGCFLAGS
+#     to "-N -l" to disable optimizations and inlining, this will be helpful when you want to
+#     use the debugging tools like delve. When GOLDFLAGS is unspecified, it defaults to "-s -w" which strips
+#     debug information, see https://golang.org/cmd/link for other flags.
+
 endef
 .PHONY: all
 ifeq ($(HELP),y)
@@ -265,7 +271,7 @@ edgeimage:
 	tar -xzf ./build/edge/tmp/qemu-${QEMU_ARCH}-static.tar.gz -C ./build/edge/tmp
 	docker build -t kubeedge/edgecore:${IMAGE_TAG} \
 	--build-arg GO_LDFLAGS=${GO_LDFLAGS} \
-	--build-arg BUILD_FROM=${ARCH}/golang:1.13.8-alpine3.10 \
+	--build-arg BUILD_FROM=${ARCH}/golang:1.14-alpine3.11 \
 	--build-arg RUN_FROM=${ARCH}/docker:dind \
 	-f build/edge/Dockerfile .
 
@@ -277,7 +283,7 @@ edgesiteimage:
 	tar -xzf ./build/edgesite/tmp/qemu-${QEMU_ARCH}-static.tar.gz -C ./build/edgesite/tmp
 	docker build -t kubeedge/edgesite:${IMAGE_TAG} \
 	--build-arg GO_LDFLAGS=${GO_LDFLAGS} \
-	--build-arg BUILD_FROM=${ARCH}/golang:1.13.8-alpine3.10 \
+	--build-arg BUILD_FROM=${ARCH}/golang:1.14-alpine3.11 \
 	--build-arg RUN_FROM=${ARCH}/docker:dind \
 	-f build/edgesite/Dockerfile .
 

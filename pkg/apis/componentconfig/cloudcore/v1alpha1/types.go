@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	componentbaseconfig "k8s.io/component-base/config"
 
@@ -84,7 +86,7 @@ type CloudHub struct {
 	// default 30
 	KeepaliveInterval int32 `json:"keepaliveInterval,omitempty"`
 	// NodeLimit indicates node limit
-	// default 10
+	// default 1000
 	NodeLimit int32 `json:"nodeLimit,omitempty"`
 	// TLSCAFile indicates ca file path
 	// default "/etc/kubeedge/ca/rootCA.crt"
@@ -113,6 +115,11 @@ type CloudHub struct {
 	HTTPS *CloudHubHTTPS `json:"https,omitempty"`
 	// AdvertiseAddress sets the IP address for the cloudcore to advertise.
 	AdvertiseAddress []string `json:"advertiseAddress,omitempty"`
+	// DNSNames sets the DNSNames for CloudCore.
+	DNSNames []string `json:"dnsNames,omitempty"`
+	// EdgeCertSigningDuration indicates the validity period of edge certificate
+	// default 365d
+	EdgeCertSigningDuration time.Duration `json:"edgeCertSigningDuration,omitempty"`
 }
 
 // CloudHubQUIC indicates the quic server config

@@ -180,7 +180,10 @@ type edged struct {
 	containerRuntimeName      string
 	concurrentConsumers       int
 	// container runtime
-	containerRuntime   kubecontainer.Runtime
+	containerRuntime kubecontainer.Runtime
+	// Streaming runtime handles container streaming.
+	streamingRuntime kubecontainer.StreamingRuntime
+
 	podCache           kubecontainer.Cache
 	os                 kubecontainer.OSInterface
 	resourceAnalyzer   serverstats.ResourceAnalyzer
@@ -328,6 +331,13 @@ func (e *edged) Start() {
 	klog.Infof("starting plugin manager")
 	go e.pluginManager.Run(edgedutil.NewSourcesReady(e.isInitPodReady), utilwait.NeverStop)
 
+	// start the CPU manager in the clcm
+	err := e.clcm.StartCPUManager(e.GetActivePods, edgedutil.NewSourcesReady(e.isInitPodReady), e.statusManager, e.runtimeService)
+	if err != nil {
+		klog.Errorf("Failed to start container manager, err: %v", err)
+		return
+	}
+
 	klog.Infof("starting syncPod")
 	e.syncPod()
 }
@@ -449,7 +459,12 @@ func newEdged(enable bool) (*edged, error) {
 	//create and start the docker shim running as a grpc server
 	if edgedconfig.Config.RemoteRuntimeEndpoint == DockerShimEndpoint ||
 		edgedconfig.Config.RemoteRuntimeEndpoint == DockerShimEndpointDeprecated {
-		streamingConfig := &streaming.Config{}
+		streamingConfig := &streaming.Config{
+			StreamCreationTimeout:           streaming.DefaultConfig.StreamCreationTimeout,
+			SupportedRemoteCommandProtocols: streaming.DefaultConfig.SupportedRemoteCommandProtocols,
+			SupportedPortForwardProtocols:   streaming.DefaultConfig.SupportedPortForwardProtocols,
+		}
+
 		DockerClientConfig := &dockershim.ClientConfig{
 			DockerEndpoint:            edgedconfig.Config.DockerAddress,
 			ImagePullProgressDeadline: time.Duration(edgedconfig.Config.ImagePullProgressDeadline) * time.Second,
@@ -467,7 +482,10 @@ func newEdged(enable bool) (*edged, error) {
 			MTU:                int(edgedconfig.Config.NetworkPluginMTU),
 		}
 
-		redirectContainerStream := redirectContainerStream
+		// TODO(daixiang0): Support RedirectContainerStreaming
+		// from k8s getStreamingConfig()
+		streamingConfig.Addr = net.JoinHostPort("localhost", "0")
+
 		cgroupDriver := ed.cgroupDriver
 
 		ds, err := dockershim.NewDockerService(DockerClientConfig,
@@ -477,7 +495,7 @@ func newEdged(enable bool) (*edged, error) {
 			cgroupName,
 			cgroupDriver,
 			DockershimRootDir,
-			redirectContainerStream)
+			true)
 
 		if err != nil {
 			return nil, err
@@ -524,6 +542,9 @@ func newEdged(enable bool) (*edged, error) {
 	}
 
 	ed.clcm, err = clcm.NewContainerLifecycleManager(DefaultRootDir)
+	if err != nil {
+		return nil, err
+	}
 
 	useLegacyCadvisorStats := cadvisor.UsingLegacyCadvisorStats(edgedconfig.Config.RuntimeType, edgedconfig.Config.RemoteRuntimeEndpoint)
 	if edgedconfig.Config.EnableMetrics {
@@ -583,14 +604,15 @@ func newEdged(enable bool) (*edged, error) {
 	containerManager, err := cm.NewContainerManager(mount.New(""),
 		ed.cadvisor,
 		cm.NodeConfig{
-			CgroupDriver:                 edgedconfig.Config.CGroupDriver,
-			SystemCgroupsName:            edgedconfig.Config.SystemCgroups,
-			KubeletCgroupsName:           edgedconfig.Config.EdgeCoreCgroups,
-			ContainerRuntime:             edgedconfig.Config.RuntimeType,
-			CgroupsPerQOS:                edgedconfig.Config.CgroupsPerQOS,
-			KubeletRootDir:               DefaultRootDir,
-			ExperimentalCPUManagerPolicy: string(cpumanager.PolicyNone),
-			CgroupRoot:                   edgedconfig.Config.CgroupRoot,
+			CgroupDriver:                      edgedconfig.Config.CGroupDriver,
+			SystemCgroupsName:                 edgedconfig.Config.SystemCgroups,
+			KubeletCgroupsName:                edgedconfig.Config.EdgeCoreCgroups,
+			ContainerRuntime:                  edgedconfig.Config.RuntimeType,
+			CgroupsPerQOS:                     edgedconfig.Config.CgroupsPerQOS,
+			KubeletRootDir:                    DefaultRootDir,
+			ExperimentalCPUManagerPolicy:      string(cpumanager.PolicyNone),
+			CgroupRoot:                        edgedconfig.Config.CgroupRoot,
+			ExperimentalTopologyManagerPolicy: "none",
 		},
 		false,
 		edgedconfig.Config.DevicePluginEnabled,
@@ -600,6 +622,7 @@ func newEdged(enable bool) (*edged, error) {
 	}
 
 	ed.containerRuntime = containerRuntime
+	ed.streamingRuntime = containerRuntime
 	ed.runner = containerRuntime
 	ed.containerManager = containerManager
 	ed.runtimeService = runtimeService
@@ -1194,6 +1217,10 @@ func (e *edged) handlePodListFromMetaManager(content []byte) (err error) {
 			return err
 		}
 		e.addPod(&pod)
+		if err = e.updatePodStatus(&pod); err != nil {
+			klog.Errorf("handlePodListFromMetaManager: update pod %s status error", pod.Name)
+			return err
+		}
 	}
 
 	return nil

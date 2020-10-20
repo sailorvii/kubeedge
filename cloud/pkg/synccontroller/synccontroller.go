@@ -1,6 +1,7 @@
 package synccontroller
 
 import (
+	"context"
 	"os"
 	"strings"
 	"time"
@@ -25,10 +26,11 @@ import (
 	"github.com/kubeedge/kubeedge/cloud/pkg/apis/reliablesyncs/v1alpha1"
 	"github.com/kubeedge/kubeedge/cloud/pkg/client/clientset/versioned"
 	crdinformerfactory "github.com/kubeedge/kubeedge/cloud/pkg/client/informers/externalversions"
-	deviceinformer "github.com/kubeedge/kubeedge/cloud/pkg/client/informers/externalversions/devices/v1alpha1"
+	deviceinformer "github.com/kubeedge/kubeedge/cloud/pkg/client/informers/externalversions/devices/v1alpha2"
 	syncinformer "github.com/kubeedge/kubeedge/cloud/pkg/client/informers/externalversions/reliablesyncs/v1alpha1"
-	devicelister "github.com/kubeedge/kubeedge/cloud/pkg/client/listers/devices/v1alpha1"
+	devicelister "github.com/kubeedge/kubeedge/cloud/pkg/client/listers/devices/v1alpha2"
 	synclister "github.com/kubeedge/kubeedge/cloud/pkg/client/listers/reliablesyncs/v1alpha1"
+	"github.com/kubeedge/kubeedge/cloud/pkg/common/modules"
 	"github.com/kubeedge/kubeedge/cloud/pkg/synccontroller/config"
 	commonconst "github.com/kubeedge/kubeedge/common/constants"
 	configv1alpha1 "github.com/kubeedge/kubeedge/pkg/apis/componentconfig/cloudcore/v1alpha1"
@@ -93,7 +95,7 @@ func newSyncController(enable bool) *SyncController {
 	serviceInformer := kubeSharedInformers.Core().V1().Services()
 	endpointInformer := kubeSharedInformers.Core().V1().Endpoints()
 	nodeInformer := kubeSharedInformers.Core().V1().Nodes()
-	deviceInformer := crdFactory.Devices().V1alpha1().Devices()
+	deviceInformer := crdFactory.Devices().V1alpha2().Devices()
 	clusterObjectSyncInformer := crdFactory.Reliablesyncs().V1alpha1().ClusterObjectSyncs()
 	objectSyncInformer := crdFactory.Reliablesyncs().V1alpha1().ObjectSyncs()
 
@@ -148,12 +150,12 @@ func Register(ec *configv1alpha1.SyncController, kubeAPIConfig *configv1alpha1.K
 
 // Name of controller
 func (sctl *SyncController) Name() string {
-	return SyncControllerModuleName
+	return modules.SyncControllerModuleName
 }
 
 // Group of controller
 func (sctl *SyncController) Group() string {
-	return SyncControllerModuleGroup
+	return modules.SyncControllerModuleGroup
 }
 
 // Group of controller
@@ -251,7 +253,7 @@ func (sctl *SyncController) deleteObjectSyncs() {
 		}
 		if isGarbage {
 			klog.Infof("ObjectSync %s will be deleted since node %s has been deleted", sync.Name, nodeName)
-			err = sctl.crdClient.ReliablesyncsV1alpha1().ObjectSyncs(sync.Namespace).Delete(sync.Name, metav1.NewDeleteOptions(0))
+			err = sctl.crdClient.ReliablesyncsV1alpha1().ObjectSyncs(sync.Namespace).Delete(context.Background(), sync.Name, *metav1.NewDeleteOptions(0))
 			if err != nil {
 				klog.Errorf("failed to delete objectSync %s for edgenode %s, err: %v", sync.Name, nodeName, err)
 			}

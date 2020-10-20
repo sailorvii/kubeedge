@@ -60,7 +60,7 @@ const (
 	RuntimeType = "runtimetype"
 
 	// DefaultKubeEdgeVersion is the default KubeEdge version
-	DefaultKubeEdgeVersion = "1.3.1"
+	DefaultKubeEdgeVersion = "1.4.0"
 
 	// Token sets the token used when edge applying for the certificate
 	Token = "token"
@@ -73,4 +73,9 @@ const (
 	TokenSecretName = "tokensecret"
 
 	TokenDataName = "tokendata"
+
+	DomainName = "domainname"
+
+	// CGroupDriver is type of edgecore Cgroup
+	CGroupDriver = "cgroupdriver"
 )
