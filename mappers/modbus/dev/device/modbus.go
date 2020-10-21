@@ -55,7 +55,7 @@ func Start(md *globals.ModbusDev) (err error) {
 			continue
 		}
 		// only ReadWrite AccessMode need
-		if md.Instance.Twins[i].PVisitor.PProperty.AccessMode == "ReadWrite" {
+		if md.Instance.Twins[i].PVisitor.PProperty.AccessMode == globals.AssessModeRW {
 			v, err := mappercommon.Convert(md.Instance.Twins[i].PVisitor.PProperty.DataType, md.Instance.Twins[i].Desired.Value)
 			if err != nil {
 				klog.Error("Convert error. Type: %s, value: %s ", md.Instance.Twins[i].PVisitor.PProperty.DataType, md.Instance.Twins[i].Desired.Value)
