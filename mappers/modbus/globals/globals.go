@@ -8,6 +8,13 @@ import (
 	mappercommon "github.com/kubeedge/kubeedge/mappers/common"
 )
 
+const (
+	AssessModeRW = "ReadWrite"
+	AssessModeRO = "ReadOnly"
+)
+
+var MqttClient mappercommon.MqttClient
+
 type ModbusTcp struct {
 	SlaveId  byte
 	DeviceIp string
@@ -33,5 +40,3 @@ type ModbusDev struct {
 	Instance     mappercommon.DeviceInstance
 	ModbusClient ModbusClient
 }
-
-var MqttClient mappercommon.MqttClient

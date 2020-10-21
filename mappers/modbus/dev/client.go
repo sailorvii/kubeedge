@@ -67,8 +67,6 @@ func Get(c ModbusClient, registerType string, addr uint16, quantity uint16) (res
 	default:
 		return nil, errors.New("Bad register type")
 	}
-	klog.Error("Get")
-	klog.Error(results)
 	return results, err
 }
 

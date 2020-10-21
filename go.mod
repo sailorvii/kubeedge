@@ -27,6 +27,8 @@ require (
 	github.com/go-chassis/go-archaius v0.20.0
 	github.com/go-chassis/go-chassis v1.7.1
 	github.com/go-chassis/paas-lager v1.1.1 // indirect
+	github.com/goburrow/modbus v0.1.0
+	github.com/goburrow/serial v0.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 // indirect
 	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.3.2

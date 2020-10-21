@@ -7,7 +7,6 @@ import (
 
 	mappercommon "github.com/kubeedge/kubeedge/mappers/common"
 	"github.com/kubeedge/kubeedge/mappers/modbus/globals"
-	"k8s.io/klog"
 )
 
 func Parse(path string,
@@ -20,12 +19,9 @@ func Parse(path string,
 	}
 
 	var deviceProfile mappercommon.DeviceProfile
-	err = json.Unmarshal(jsonFile, &deviceProfile)
-	if err != nil {
+	if err = json.Unmarshal(jsonFile, &deviceProfile); err != nil {
 		return err
 	}
-
-	klog.Error("profile len:", len(deviceProfile.DeviceInstances))
 	for i := 0; i < len(deviceProfile.DeviceInstances); i++ {
 		instance := deviceProfile.DeviceInstances[i]
 		j := 0
@@ -104,7 +100,6 @@ func Parse(path string,
 
 		devices[instance.ID] = new(globals.ModbusDev)
 		devices[instance.ID].Instance = instance
-		klog.Error("Instance id:", instance.ID)
 	}
 
 	for i := 0; i < len(deviceProfile.DeviceModels); i++ {

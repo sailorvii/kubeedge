@@ -17,11 +17,10 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
+	"github.com/kubeedge/kubeedge/mappers/modbus/dev/device"
 	"os"
 
 	mappercommon "github.com/kubeedge/kubeedge/mappers/common"
-	"github.com/kubeedge/kubeedge/mappers/modbus/dev"
 	"github.com/kubeedge/kubeedge/mappers/modbus/globals"
 	"k8s.io/klog"
 )
@@ -30,14 +29,11 @@ func main() {
 	var err error
 	var c Config
 
-	err = c.Parse("./config.yaml")
-	if err != nil {
+	if err = c.Parse("./config.yaml"); err != nil {
 		klog.Error(err)
 		os.Exit(1)
 	}
-	fmt.Println(c.Configmap)
-	err = dev.DevInit(c.Configmap)
-	if err != nil {
+	if err = device.DevInit(c.Configmap); err != nil {
 		klog.Error(err)
 		os.Exit(1)
 	}
@@ -51,5 +47,5 @@ func main() {
 		klog.Error(err)
 		os.Exit(1)
 	}
-	dev.DevStart()
+	device.DevStart()
 }
